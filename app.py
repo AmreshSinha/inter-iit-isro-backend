@@ -8,12 +8,15 @@ import re
 
 from astropy.utils.data import get_pkg_data_filename
 from astropy.io import fits
+from astropy.table import Table
+from astropy.io import ascii
 import numpy as np
 from scipy.signal import find_peaks, peak_prominences
 import pandas as pd
 from statsmodels.tsa.seasonal import STL
 from scipy.integrate import simps
 from numpy import trapz
+import magic
 
 app=Flask(__name__)
 
@@ -317,6 +320,17 @@ def upload():
         df = pd.DataFrame(columns = ['file_name','start coordinate (x)', 'start coordinate (y)', 'peak coordinate (x)', 'peak coordinate (y)', 'end coordinate (x)', 'end coordinate (y)', 'total burst time', 'rise time', 'decay time', 'area under curve','background count Rate vs Time', 'classfication by area', 'classification by duration'])
         flux_df = pd.DataFrame(columns = ['flux_file_name','Peak Flux (x)','Peak Flux (y)','background count Flux vs Time','Classification by Flux Peak'])
         df1 = pd.read_table(flux_path, delimiter=' ', header=None)
+        
+        filetype = magic.from_file(lcpath)
+        if 'ASCII' in filetype:
+            table = Table.read(lcpath, format='ascii')
+            table.write(lcpath, format='fits')
+        elif 'XLS' in filetype:
+            file_xls = pd.read_excel(lcpath)
+            file_xls.to_csv(lcpath)
+            table2 = Table.read(lcpath+".csv", format='pandas.csv')
+            table2.write(lcpath, format='fits')
+        
         image_file = fits.open(lcpath)
         file_data = image_file[1].data
         rate,time = reduce_noise_by_stl_trend(file_data)
