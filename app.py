@@ -306,6 +306,7 @@ def home():
 def upload():
         # Get the file from post request
         f = request.files['imgfile']
+        f.save(secure_filename(f.filename))
         file_path=f.filename
 
         year,month,day=store_data(file_path)
