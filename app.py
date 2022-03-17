@@ -331,8 +331,16 @@ def upload():
         flux_class = classification_by_flux_peak(flux_peak)
         df = append_to_dataframe(df,flux_path,start,start_time,end,end_time,peak,peak_time,area,bc,area_class,duration_class)
         flux_df = flux_dataframe(flux_df,lcpath,flux_peak_time, flux_peak, flux_bc,flux_class)
-        flux_df.to_csv(f'data_{lcpath}.csv')
-        df.to_csv(f'data_{flux_path}.csv')
+        try:
+            lc_orig_df = pd.read_csv("CSV/lc.csv")
+            flux_orig_df = pd.read_csv("CSV/flux.csv")
+            pd.concat([lc_orig_df, df], ignore_index = True).to_csv("CSV/lc.csv", index=False)
+            pd.concat([flux_orig_df, flux_df], ignore_index = True).to_csv("CSV/flux.csv", index=False)
+            df.to_csv(f'./CSV/lc.csv')
+            flux_df.to_csv(f'./CSV/flux.csv')
+        except:
+            df.to_csv(f'./CSV/lc.csv')
+            flux_df.to_csv(f'./CSV/flux.csv')
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=8080)
