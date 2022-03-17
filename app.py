@@ -306,7 +306,7 @@ def home():
 def upload():
         # Get the file from post request
         f = request.files['imgfile']
-        file_path=f.filename()
+        file_path=f.filename
 
         year,month,day=store_data(file_path)
         generate_flux(year,month,day)
