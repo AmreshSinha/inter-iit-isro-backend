@@ -1,10 +1,12 @@
-from flask import Flask, render_template, url_for, request
+from flask import Flask, render_template, url_for, request, jsonify
 from werkzeug.utils import secure_filename
 
 import sys
 import os
 import glob
 import re
+import csv
+import json
 
 from astropy.utils.data import get_pkg_data_filename
 import magic
@@ -312,6 +314,29 @@ def generate_flux(year,month,day):
     os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.txt")
     os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.arf") 
 
+def make_json(csvFilePath, jsonFilePath):
+     
+    # create a dictionary
+    data = {}
+     
+    # Open a csv reader called DictReader
+    with open(csvFilePath, encoding='utf-8') as csvf:
+        csvReader = csv.DictReader(csvf)
+         
+        # Convert each row into a dictionary
+        # and add it to data
+        for rows in csvReader:
+             
+            # Assuming a column named 'No' to
+            # be the primary key
+            key = rows['No']
+            data[key] = rows
+ 
+    # Open a json writer, and use the json.dumps()
+    # function to dump data
+    with open(jsonFilePath, 'w', encoding='utf-8') as jsonf:
+        jsonf.write(json.dumps(data, indent=4))
+
 @app.route('/', methods=['GET'])
 def home():
     return "<h1>Hi from Backend!</h1>"
@@ -368,6 +393,30 @@ def upload():
         except:
             df.to_csv(f'./CSV/lc.csv')
             flux_df.to_csv(f'./CSV/flux.csv')
+
+        return jsonify({'status': 'ok'})
+
+@app.route('/api/data/lc', methods=['GET'])
+def lcData():
+    try:
+        lc_csv = pd.read_csv(r'CSV/lc.csv')
+        lc_csv.to_json(r'JSON/lc.json')
+        with open('JSON/lc.json', 'r') as file:
+            lcJSON = file.read()
+        return jsonify(lcJSON)
+    except:
+        return "No File Provided"
+
+@app.route('/api/data/flux', methods=['GET'])
+def fluxData():
+    try:
+        flux_csv = pd.read_csv(r'CSV/flux.csv')
+        flux_csv.to_json(r'JSON/flux.json')
+        with open('JSON/flux.json', 'r') as file:
+            fluxJSON = file.read()
+        return jsonify(fluxJSON)
+    except:
+        return "No File Provided"
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=8080)
