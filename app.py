@@ -7,6 +7,8 @@ import glob
 import re
 
 from astropy.utils.data import get_pkg_data_filename
+import magic
+from astropy.table import Table
 from astropy.io import fits
 import numpy as np
 from scipy.signal import find_peaks, peak_prominences
@@ -243,6 +245,18 @@ def classification_by_flux_peak(flux_peak):
             
     return flux_class
 
+def classification_by_flux_peak_by_bc(flux_peak,flux_bc):
+    flux_class_bc = []
+    for i in range(0,len(flux_peak)):
+        if((flux_peak[i]/flux_bc)<10):
+            flux_class_bc.append('Type 1')
+        elif((flux_peak[i]/flux_bc)>10 and (flux_peak[i]/flux_bc)<100):
+            flux_class_bc.append('Type 2')
+        else:
+            flux_class_bc.append('Type 3')
+            
+    return flux_class_bc
+
 def append_to_dataframe(df,name,start,start_time,end,end_time,peak,peak_time,area,bc,area_class,duration_class):
     burst_time = []
     rise_time = []
@@ -260,8 +274,8 @@ def append_to_dataframe(df,name,start,start_time,end,end_time,peak,peak_time,are
 
     return df3
 
-def flux_dataframe(df1,flux_file,flux_peak_time, flux_peak,flux_bc,flux_class):
-    dict = {'flux_file_name':flux_file,'Peak Flux (x)':flux_peak_time,'Peak Flux (y)':flux_peak,'background count Flux vs Time':flux_bc,'Classification by Flux Peak':flux_class}
+def flux_dataframe(df1,flux_file,flux_peak_time, flux_peak,flux_bc,flux_class,flux_class_bc):
+    dict = {'flux_file_name':flux_file,'Peak Flux (x)':flux_peak_time,'Peak Flux (y)':flux_peak,'background count Flux vs Time':flux_bc,'Classification by Flux Peak':flux_class,'Classification by Flux Peak By Background Count':flux_class_bc}
     df2 = pd.DataFrame(dict)
 
   
@@ -315,8 +329,18 @@ def upload():
 
 
         df = pd.DataFrame(columns = ['file_name','start coordinate (x)', 'start coordinate (y)', 'peak coordinate (x)', 'peak coordinate (y)', 'end coordinate (x)', 'end coordinate (y)', 'total burst time', 'rise time', 'decay time', 'area under curve','background count Rate vs Time', 'classfication by area', 'classification by duration'])
-        flux_df = pd.DataFrame(columns = ['flux_file_name','Peak Flux (x)','Peak Flux (y)','background count Flux vs Time','Classification by Flux Peak'])
+        flux_df = pd.DataFrame(columns = ['flux_file_name','Peak Flux (x)','Peak Flux (y)','background count Flux vs Time','Classification by Flux Peak','Classification by Flux Peak By Background Count'])
         df1 = pd.read_table(flux_path, delimiter=' ', header=None)
+        filetype = magic.from_file(lcpath)
+        if 'ASCII' in filetype:
+            table = Table.read(lcpath, format='ascii')
+            table.write(lcpath, format='fits')
+        elif 'XLS' in filetype:
+            file_xls = pd.read_excel(lcpath)
+            file_xls.to_csv(lcpath)
+            table2 = Table.read(lcpath+".csv", format='pandas.csv')
+            table2.write(lcpath, format='fits')
+
         image_file = fits.open(lcpath)
         file_data = image_file[1].data
         rate,time = reduce_noise_by_stl_trend(file_data)
@@ -329,8 +353,11 @@ def upload():
         area_class = classification_by_area(area)
         duration_class = classification_by_duration(start_time,end_time)
         flux_class = classification_by_flux_peak(flux_peak)
+        flux_class_bc = classification_by_flux_peak_by_bc(flux_peak,flux_bc)
         df = append_to_dataframe(df,flux_path,start,start_time,end,end_time,peak,peak_time,area,bc,area_class,duration_class)
-        flux_df = flux_dataframe(flux_df,lcpath,flux_peak_time, flux_peak, flux_bc,flux_class)
+        flux_df = flux_dataframe(flux_df,lcpath,flux_peak_time, flux_peak, flux_bc,flux_class,flux_class_bc)
+
+
         try:
             lc_orig_df = pd.read_csv("CSV/lc.csv")
             flux_orig_df = pd.read_csv("CSV/flux.csv")
