@@ -416,6 +416,30 @@ def upload():
 
         return jsonify({'status': 'ok'})
 
+@app.route('/api/data/lcfull', methods=['GET'])
+@cross_origin()
+def lcfulldata():
+    try:
+        lc_csv = pd.read_csv(r'CSV/all_lc.csv')
+        lc_csv.to_json(r'JSON/all_lc.json')
+        with open('JSON/all_lc.json', 'r') as file:
+            lcJSON = file.read()
+        return jsonify(lcJSON)
+    except:
+        return "No File Provided"
+
+@app.route('/api/data/fluxfull', methods=['GET'])
+@cross_origin()
+def fluxfulldata():
+    try:
+        flux_csv = pd.read_csv(r'CSV/all_flux.csv')
+        flux_csv.to_json(r'JSON/all_flux.json')
+        with open('JSON/all_flux.json', 'r') as file:
+            fluxJSON = file.read()
+        return jsonify(fluxJSON)
+    except:
+        return "No File Provided"
+
 @app.route('/api/data/lc', methods=['GET'])
 @cross_origin()
 def lcData():
