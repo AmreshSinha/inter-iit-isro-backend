@@ -1,4 +1,4 @@
-from flask import Flask, render_template, url_for, request, jsonify
+from flask import Flask, render_template, url_for, request, jsonify,send_file
 from flask_cors import CORS, cross_origin
 from werkzeug.utils import secure_filename
 
@@ -19,6 +19,7 @@ import pandas as pd
 from statsmodels.tsa.seasonal import STL
 from scipy.integrate import simps
 from numpy import trapz
+from matplotlib import pyplot as plt
 
 app=Flask(__name__)
 cors = CORS(app)
@@ -384,7 +385,9 @@ def upload():
         top = find_peak(rate,time)
         start, start_index, start_time,peak,peak_time = get_start_point(top,rate,time)
         end, end_index,end_time = get_end_time(top,start,rate,time)
+        plt.savefig('Images/lc.jpeg')
         flux_peak_time, flux_peak, flux_bc = flux_curve(df1)
+        plt.savefig('Images/flux.jpeg')
         area = area_under_curve(rate, start_index, end_index)
         bc = get_bc(start, end, rate)
         area_class = classification_by_area(area)
@@ -469,6 +472,22 @@ def fluxData():
         return jsonify(fluxJSON)
     except:
         return "No File Provided"
+@app.route('/api/data/lcImage', methods=['GET'])
+@cross_origin()
+def lcImage():
+    try:
+        filename = 'Images/lc.jpeg'
+        return send_file(filename, mimetype='image/jpeg')
+    except:
+        return "No File Exists"
+@app.route('/api/data/fluxImage', methods=['GET'])
+@cross_origin()
+def fluxImage():
+    try:
+        filename = 'Images/flux.jpeg'
+        return send_file(filename, mimetype='image/jpeg')
+    except:
+        return "No File Exists"
 
 if __name__ == "__main__":
     app.run(debug=False, host='0.0.0.0', port=8080)
