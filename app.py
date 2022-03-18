@@ -365,10 +365,13 @@ def upload():
             file_xls.to_csv(lcpath)
             table2 = Table.read(lcpath+".csv", format='pandas.csv')
             table2.write(lcpath, format='fits')
-
+        df_flux = pd.read_csv(flux_path, delimiter = ' ')
+        df_flux.to_csv(flux_path+'.csv', index = None)
         image_file = fits.open(lcpath)
         file_data = image_file[1].data
         rate,time = reduce_noise_by_stl_trend(file_data)
+        df_rate = pd.DataFrame({ 'time':time, 'rate':rate})
+        df_rate.to_csv(path+file_name+'.csv', index=None, header=False)
         top = find_peak(rate,time)
         start, start_index, start_time,peak,peak_time = get_start_point(top,rate,time)
         end, end_index,end_time = get_end_time(top,start,rate,time)
