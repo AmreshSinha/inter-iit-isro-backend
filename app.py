@@ -371,12 +371,13 @@ def upload():
             table2 = Table.read(lcpath+".csv", format='pandas.csv')
             table2.write(lcpath, format='fits')
         df_flux = pd.read_csv(flux_path, delimiter = ' ')
-        df_flux.to_csv(flux_path+'.csv', index = None)
+#         df_flux.to_csv(flux_path+'.csv', index = None)
         image_file = fits.open(lcpath)
         file_data = image_file[1].data
         rate,time = reduce_noise_by_stl_trend(file_data)
-        df_rate = pd.DataFrame({ 'time':time, 'rate':rate})
-        df_rate.to_csv(path+file_name+'.csv', index=None, header=False)
+        rate_time_array = np.transpose(np.array([time,rate]))
+        df_rate = pd.DataFrame(rate_time_array)
+#         df_rate.to_csv(path+file_name+'.csv', index=None, header=False)
         top = find_peak(rate,time)
         start, start_index, start_time,peak,peak_time = get_start_point(top,rate,time)
         end, end_index,end_time = get_end_time(top,start,rate,time)
@@ -394,13 +395,21 @@ def upload():
         try:
             lc_orig_df = pd.read_csv("CSV/lc.csv")
             flux_orig_df = pd.read_csv("CSV/flux.csv")
+            all_lc_orig_df = pd.read_csv("CSV/all_lc.csv")
+            all_flux_orig_df = pd.read_csv("CSV/all_flux.csv")
             pd.concat([lc_orig_df, df], ignore_index = True).to_csv("CSV/lc.csv", index=False)
             pd.concat([flux_orig_df, flux_df], ignore_index = True).to_csv("CSV/flux.csv", index=False)
+            pd.concat([all_lc_orig_df, df_rate], ignore_index = True).to_csv("CSV/all_lc.csv", index=False)
+            pd.concat([all_flux_orig_df, df_flux], ignore_index = True).to_csv("CSV/all_flux.csv", index=False)
             df.to_csv(f'./CSV/lc.csv')
             flux_df.to_csv(f'./CSV/flux.csv')
+            all_lc_orig_df.to_csv(f'./CSV/all_lc.csv')
+            all_flux_orig_df.to_csv(f'./CSV/all_flux.csv')
         except:
             df.to_csv(f'./CSV/lc.csv')
             flux_df.to_csv(f'./CSV/flux.csv')
+            all_lc_orig_df.to_csv(f'./CSV/all_lc.csv')
+            all_flux_orig_df.to_csv(f'./CSV/all_flux.csv')
 
         return jsonify({'status': 'ok'})
 
