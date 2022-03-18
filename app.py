@@ -370,7 +370,10 @@ def upload():
             file_xls.to_csv(lcpath)
             table2 = Table.read(lcpath+".csv", format='pandas.csv')
             table2.write(lcpath, format='fits')
-        df_flux = pd.read_csv(flux_path, delimiter = ' ')
+        df_flux = pd.read_csv(flux_path, delimiter = ' ',usecols = [2])
+        df_flux.columns = ['flux']
+        df_flux['time'] = df_flux.index
+        df_flux = df_flux[['time', 'flux']]
 #         df_flux.to_csv(flux_path+'.csv', index = None)
         image_file = fits.open(lcpath)
         file_data = image_file[1].data
