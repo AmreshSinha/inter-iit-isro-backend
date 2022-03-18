@@ -1,4 +1,5 @@
 from flask import Flask, render_template, url_for, request, jsonify
+from flask_cors import CORS, cross_origin
 from werkzeug.utils import secure_filename
 
 import sys
@@ -20,6 +21,8 @@ from scipy.integrate import simps
 from numpy import trapz
 
 app=Flask(__name__)
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 def reduce_noise_by_stl_trend(file_data):
     window_width = 60
@@ -338,10 +341,12 @@ def make_json(csvFilePath, jsonFilePath):
         jsonf.write(json.dumps(data, indent=4))
 
 @app.route('/', methods=['GET'])
+@cross_origin()
 def home():
     return "<h1>Hi from Backend!</h1>"
 
 @app.route('/api/upload', methods=['POST'])
+@cross_origin()
 def upload():
         # Get the file from post request
         f = request.files['imgfile']
@@ -400,9 +405,13 @@ def upload():
         return jsonify({'status': 'ok'})
 
 @app.route('/api/data/lc', methods=['GET'])
+@cross_origin()
 def lcData():
     try:
         lc_csv = pd.read_csv(r'CSV/lc.csv')
+        lc_csv.columns = lc_csv.columns.str.replace(' ','_')
+        lc_csv.columns = lc_csv.columns.str.replace('(','_')
+        lc_csv.columns = lc_csv.columns.str.replace(')','_')
         lc_csv.to_json(r'JSON/lc.json')
         with open('JSON/lc.json', 'r') as file:
             lcJSON = file.read()
@@ -411,9 +420,13 @@ def lcData():
         return "No File Provided"
 
 @app.route('/api/data/flux', methods=['GET'])
+@cross_origin()
 def fluxData():
     try:
         flux_csv = pd.read_csv(r'CSV/flux.csv')
+        flux_csv.columns = flux_csv.columns.str.replace(' ','_')
+        flux_csv.columns = flux_csv.columns.str.replace('(','_')
+        flux_csv.columns = flux_csv.columns.str.replace(')','_')
         flux_csv.to_json(r'JSON/flux.json')
         with open('JSON/flux.json', 'r') as file:
             fluxJSON = file.read()
