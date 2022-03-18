@@ -318,6 +318,18 @@ def generate_flux(year,month,day):
     os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.txt")
     os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.arf") 
 
+def average(x,y,maxsize):
+    binsize = int(len(x)/maxsize)
+    xnew = stats.binned_statistic(x1,y1,'mean',bins=maxsize)[0]
+    ynew = np.array([])
+    count = 0
+    while count < maxsize:
+        count = int(count)
+        ynew = np.append(ynew,y[count*binsize])
+        count=count+1
+    return xnew,ynew
+    
+
 def make_json(csvFilePath, jsonFilePath):
      
     # create a dictionary
@@ -379,6 +391,7 @@ def upload():
         image_file = fits.open(lcpath)
         file_data = image_file[1].data
         rate,time = reduce_noise_by_stl_trend(file_data)
+        time,rate=average(time,rate,10000)
 #         rate_time_array = np.transpose(np.array([time,rate]))
         df_rate = pd.DataFrame({ 'time':time, 'rate':rate}, index=None)
 #         df_rate.to_csv(path+file_name+'.csv', index=None, header=False)
