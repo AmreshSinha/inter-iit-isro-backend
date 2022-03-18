@@ -378,8 +378,8 @@ def upload():
         image_file = fits.open(lcpath)
         file_data = image_file[1].data
         rate,time = reduce_noise_by_stl_trend(file_data)
-        rate_time_array = np.transpose(np.array([time,rate]))
-        df_rate = pd.DataFrame(rate_time_array)
+#         rate_time_array = np.transpose(np.array([time,rate]))
+        df_rate = pd.DataFrame({ 'time':time, 'rate':rate}, index=None)
 #         df_rate.to_csv(path+file_name+'.csv', index=None, header=False)
         top = find_peak(rate,time)
         start, start_index, start_time,peak,peak_time = get_start_point(top,rate,time)
