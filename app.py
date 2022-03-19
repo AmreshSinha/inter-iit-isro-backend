@@ -1,7 +1,7 @@
 from flask import Flask, render_template, url_for, request, jsonify,send_file
 from flask_cors import CORS, cross_origin
 from werkzeug.utils import secure_filename
-
+from scipy import stats
 import sys
 import os
 import glob
@@ -125,8 +125,8 @@ def area_under_curve(rate, start_index, end_index):
 def flux_curve(df):
     df.fillna(0, inplace=True)
     window_width = 80
-    flux = (pd.Series(df[2]).rolling(window=window_width).mean().iloc[window_width-1:].values)
-    time = (pd.Series(df.index).rolling(window=window_width).mean().iloc[window_width-1:].values)
+    flux = (pd.Series(df['flux']).rolling(window=window_width).mean().iloc[window_width-1:].values)
+    time = (pd.Series(df['time']).rolling(window=window_width).mean().iloc[window_width-1:].values)
     x = flux
     peaks, _ = find_peaks(x)
     prominences, _, _ = peak_prominences(x, peaks)
@@ -318,17 +318,32 @@ def generate_flux(year,month,day):
     os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.txt")
     os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.arf") 
 
-def average(x,y,maxsize):
+def choose1(x,y,maxsize):
     binsize = int(len(x)/maxsize)
-    xnew = stats.binned_statistic(x1,y1,'mean',bins=maxsize)[0]
+    xnew = np.array([])
     ynew = np.array([])
     count = 0
     while count < maxsize:
         count = int(count)
+        xnew = np.append(xnew,x[count*binsize])
         ynew = np.append(ynew,y[count*binsize])
         count=count+1
     return xnew,ynew
-    
+
+def assign_status(df_rate,peak_time,start_time,end_time):
+    df_rate['Status']='Normal'
+    for i in range(0,len(df_rate)):    
+        if(df_rate.iloc[i,1] in peak_time):
+            df_rate.iloc[i,3] = 'Peak'
+        elif(df_rate.iloc[i,1] in start_time):
+            df_rate.iloc[i,3] = 'Start'
+        elif(df_rate.iloc[i,1] in end_time):
+            df_rate.iloc[i,3] = 'End'
+        else:
+            df_rate.iloc[i,3] = 'Normal'
+    return df_rate
+
+
 
 def make_json(csvFilePath, jsonFilePath):
      
@@ -387,20 +402,24 @@ def upload():
         df_flux.columns = ['flux']
         df_flux['time'] = df_flux.index
         df_flux = df_flux[['time', 'flux']]
+        tm,rt = choose1(df_flux['time'],df_flux['flux'],10000)
+        df_temp=pd.DataFrame()
+        df_temp['time']=tm
+        df_temp['flux'] = rt
+        df_flux=df_temp
 #         df_flux.to_csv(flux_path+'.csv', index = None)
         image_file = fits.open(lcpath)
         file_data = image_file[1].data
         rate,time = reduce_noise_by_stl_trend(file_data)
-        time,rate=average(time,rate,10000)
+        time,rate=choose1(time,rate,10000)
 #         rate_time_array = np.transpose(np.array([time,rate]))
         df_rate = pd.DataFrame({ 'time':time, 'rate':rate}, index=None)
 #         df_rate.to_csv(path+file_name+'.csv', index=None, header=False)
         top = find_peak(rate,time)
         start, start_index, start_time,peak,peak_time = get_start_point(top,rate,time)
         end, end_index,end_time = get_end_time(top,start,rate,time)
-        plt.savefig('Images/lc.jpeg')
-        flux_peak_time, flux_peak, flux_bc = flux_curve(df1)
-        plt.savefig('Images/flux.jpeg')
+        flux_peak_time, flux_peak, flux_bc = flux_curve(df_flux)
+       
         area = area_under_curve(rate, start_index, end_index)
         bc = get_bc(start, end, rate)
         area_class = classification_by_area(area)
@@ -409,17 +428,23 @@ def upload():
         flux_class_bc = classification_by_flux_peak_by_bc(flux_peak,flux_bc)
         df = append_to_dataframe(df,flux_path,start,start_time,end,end_time,peak,peak_time,area,bc,area_class,duration_class)
         flux_df = flux_dataframe(flux_df,lcpath,flux_peak_time, flux_peak, flux_bc,flux_class,flux_class_bc)
+        df_rate['status'] ='Normal'
+        #df_rate = assign_status(df_rate,peak_time,start_time,end_time)
+        df_rate['status'] = df_rate['time'].apply(lambda x: 'Peak' if x in peak_time else('Start' if x in start_time else('End' if x in end_time else 'Normal')))
+        df_flux['status'] ='Normal'
+        df_flux['status'] = df_flux['time'].apply(lambda x: 'Peak' if x in flux_peak_time else 'Normal')
+        #df_flux = assign_status(df_flux,flux_peak_time,[],[])
 
 
         try:
-            lc_orig_df = pd.read_csv("CSV/lc.csv")
-            flux_orig_df = pd.read_csv("CSV/flux.csv")
-            all_lc_orig_df = pd.read_csv("CSV/all_lc.csv")
-            all_flux_orig_df = pd.read_csv("CSV/all_flux.csv")
-            pd.concat([lc_orig_df, df], ignore_index = True).to_csv("CSV/lc.csv", index=False)
-            pd.concat([flux_orig_df, flux_df], ignore_index = True).to_csv("CSV/flux.csv", index=False)
-            pd.concat([all_lc_orig_df, df_rate], ignore_index = True).to_csv("CSV/all_lc.csv", index=False)
-            pd.concat([all_flux_orig_df, df_flux], ignore_index = True).to_csv("CSV/all_flux.csv", index=False)
+            # lc_orig_df = pd.read_csv("CSV/lc.csv")
+            # flux_orig_df = pd.read_csv("CSV/flux.csv")
+            # all_lc_orig_df = pd.read_csv("CSV/all_lc.csv")
+            # all_flux_orig_df = pd.read_csv("CSV/all_flux.csv")
+            # pd.concat([lc_orig_df, df], ignore_index = True).to_csv("CSV/lc.csv", index=False)
+            # pd.concat([flux_orig_df, flux_df], ignore_index = True).to_csv("CSV/flux.csv", index=False)
+            # pd.concat([all_lc_orig_df, df_rate], ignore_index = True).to_csv("CSV/all_lc.csv", index=False)
+            # pd.concat([all_flux_orig_df, df_flux], ignore_index = True).to_csv("CSV/all_flux.csv", index=False)
             df.to_csv(f'./CSV/lc.csv')
             flux_df.to_csv(f'./CSV/flux.csv')
             df_rate.to_csv(f'./CSV/all_lc.csv')
@@ -485,22 +510,7 @@ def fluxData():
         return jsonify(fluxJSON)
     except:
         return "No File Provided"
-@app.route('/api/data/lcImage', methods=['GET'])
-@cross_origin()
-def lcImage():
-    try:
-        filename = 'Images/lc.jpeg'
-        return send_file(filename, mimetype='image/jpeg')
-    except:
-        return "No File Exists"
-@app.route('/api/data/fluxImage', methods=['GET'])
-@cross_origin()
-def fluxImage():
-    try:
-        filename = 'Images/flux.jpeg'
-        return send_file(filename, mimetype='image/jpeg')
-    except:
-        return "No File Exists"
+
 
 if __name__ == "__main__":
     app.run(debug=False, host='0.0.0.0', port=8080)
