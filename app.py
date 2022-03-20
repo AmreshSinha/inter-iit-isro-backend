@@ -317,7 +317,7 @@ def path(year,month,day):
 
 def generate_flux(year,month,day):            
         flag=0
-        os.system("xsmgenspec l1file=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.fits specfile=data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+month+day+"_v1_flux.txt spectype=time-resolved tstart=0 tstop=0 tbinsize=1 hkfile=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.hk safile=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.sa gtifile=data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+month+day+"_v1_level2.gti")
+        os.system("xsmgenspec l1file=dta/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.fits specfile=data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+month+day+"_v1_flux.txt spectype=time-resolved tstart=0 tstop=0 tbinsize=1 hkfile=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.hk safile=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.sa gtifile=data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+month+day+"_v1_level2.gti")
         os.system("xsmcomputeflux  data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.txt data/"+year+"/"+month+"/"+day+"/calibrated/fluxc.txt 1.5498 12.398")
         os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.txt")
         flag = os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.arf") 
@@ -405,15 +405,7 @@ def upload():
             file_xls.to_csv(lcpath)
             table2 = Table.read(lcpath+".csv", format='pandas.csv')
             table2.write(lcpath, format='fits')
-        df_flux = pd.read_csv(flux_path, delimiter = ' ',usecols = [2])
-        df_flux.columns = ['flux']
-        df_flux['time'] = df_flux.index
-        df_flux = df_flux[['time', 'flux']]
-        tm,rt = choose1(df_flux['time'],df_flux['flux'],10000)
-        df_temp=pd.DataFrame()
-        df_temp['time']=tm
-        df_temp['flux'] = rt
-        df_flux=df_temp
+        
 #         df_flux.to_csv(flux_path+'.csv', index = None)
         image_file = fits.open(lcpath)
         file_data = image_file[1].data
@@ -426,24 +418,39 @@ def upload():
         top = find_peak(rate,time)
         start, start_index, start_time,peak,peak_time = get_start_point(top,rate,time)
         end, end_index,end_time = get_end_time(top,start,rate,time)
-        flux_peak_time, flux_peak, flux_bc = flux_curve(df_flux)
+        
        
         area = area_under_curve(rate, start_index, end_index)
         bc = get_bc(start, end, rate)
         area_class = classification_by_area(area)
         duration_class = classification_by_duration(start_time,end_time)
-        flux_class = classification_by_flux_peak(flux_peak)
-        flux_class_bc = classification_by_flux_peak_by_bc(flux_peak,flux_bc)
+        
+
+        
+
         df = append_to_dataframe(df,flux_path,start,start_time,end,end_time,peak,peak_time,area,bc,area_class,duration_class)
-        flux_df = flux_dataframe(flux_df,lcpath,flux_peak_time, flux_peak, flux_bc,flux_class,flux_class_bc)
         df_rate['status'] ='Normal'
         #df_rate = assign_status(df_rate,peak_time,start_time,end_time)
         df_rate['status'] = df_rate['time'].apply(lambda x: 'Peak' if x in peak_time else('Start' if x in start_time else('End' if x in end_time else 'Normal')))
-        df_flux['status'] ='Normal'
-        df_flux['status'] = df_flux['time'].apply(lambda x: 'Peak' if x in flux_peak_time else 'Normal')
         #df_flux = assign_status(df_flux,flux_peak_time,[],[])
-
-
+        if is_flux:
+            df_flux = pd.read_csv(flux_path, delimiter = ' ',usecols = [2])
+            df_flux.columns = ['flux']
+            df_flux['time'] = df_flux.index
+            df_flux = df_flux[['time', 'flux']]
+            tm,rt = choose1(df_flux['time'],df_flux['flux'],10000)
+            df_temp=pd.DataFrame()
+            df_temp['time']=tm
+            df_temp['flux'] = rt
+            df_flux=df_temp
+            flux_peak_time, flux_peak, flux_bc = flux_curve(df_flux)
+            flux_class = classification_by_flux_peak(flux_peak)
+            flux_class_bc = classification_by_flux_peak_by_bc(flux_peak,flux_bc)
+            flux_df = flux_dataframe(flux_df,lcpath,flux_peak_time, flux_peak, flux_bc,flux_class,flux_class_bc)
+            df_flux['status'] ='Normal'
+            df_flux['status'] = df_flux['time'].apply(lambda x: 'Peak' if x in flux_peak_time else 'Normal')
+        else:
+            df_flux = pd.DataFrame(columns = ['flux_file_name','Peak Flux (x)','Peak Flux (y)','background count Flux vs Time','Classification by Flux Peak','Classification by Flux Peak By Background Count'])
         try:
             # lc_orig_df = pd.read_csv("CSV/lc.csv")
             # flux_orig_df = pd.read_csv("CSV/flux.csv")
