@@ -317,7 +317,7 @@ def path(year,month,day):
 
 def generate_flux(year,month,day):            
         flag=0
-        os.system("xsmgenspec l1file=dta/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.fits specfile=data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+month+day+"_v1_flux.txt spectype=time-resolved tstart=0 tstop=0 tbinsize=1 hkfile=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.hk safile=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.sa gtifile=data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+month+day+"_v1_level2.gti")
+        os.system("xsmgenspec l1file=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.fits specfile=data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+month+day+"_v1_flux.txt spectype=time-resolved tstart=0 tstop=0 tbinsize=1 hkfile=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.hk safile=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.sa gtifile=data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+month+day+"_v1_level2.gti")
         os.system("xsmcomputeflux  data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.txt data/"+year+"/"+month+"/"+day+"/calibrated/fluxc.txt 1.5498 12.398")
         os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.txt")
         flag = os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.arf") 
