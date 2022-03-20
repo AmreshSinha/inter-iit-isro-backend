@@ -164,14 +164,17 @@ def flux_curve(df):
         print("peak coordinates : ",time[j],x[j])
         while j:
             t = time[j]
+            try:
+                if((x[j]-x[j+1])<0.00001 and (x[j+1]-x[j+2])<0.00001 and (x[j+2]-x[j+3])<0.00001 and x[j]<0.1*(np.max(x)-np.min(x))):
 
-            if((x[j]-x[j+1])<0.00001 and (x[j+1]-x[j+2])<0.00001 and (x[j+2]-x[j+3])<0.00001 and x[j]<0.1*(np.max(x)-np.min(x))):
 
-
-                print("end coordinates : ",t,x[j])
-                end.append(x[j])
-                break
-
+                    print("end coordinates : ",t,x[j])
+                    end.append(x[j])
+                    break
+            except:
+                    print("end coordinates : ",t,x[j-1])
+                    end.append(x[j-1])
+                    break 
             if( x[j+1]>=x[j] and x[j+2]>=x[j+1] and x[j+3]>=x[j+2] and x[j+3]>=1.005*x[j]):
                 print("end coordinates : ",t,x[j])
                 end.append(x[j])
@@ -312,11 +315,17 @@ def path(year,month,day):
     return lcpath,flux_path
 
 
-def generate_flux(year,month,day):        
-    os.system("xsmgenspec l1file=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.fits specfile=data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+month+day+"_v1_flux.txt spectype=time-resolved tstart=0 tstop=0 tbinsize=1 hkfile=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.hk safile=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.sa gtifile=data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+month+day+"_v1_level2.gti")
-    os.system("xsmcomputeflux  data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.txt data/"+year+"/"+month+"/"+day+"/calibrated/fluxc.txt 1.5498 12.398")
-    os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.txt")
-    os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.arf") 
+def generate_flux(year,month,day):            
+        flag=0
+        os.system("xsmgenspec l1file=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.fits specfile=data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+month+day+"_v1_flux.txt spectype=time-resolved tstart=0 tstop=0 tbinsize=1 hkfile=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.hk safile=data/"+year+"/"+month+"/"+day+"/raw/ch2_xsm_"+year+month+day+"_v1_level1.sa gtifile=data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+month+day+"_v1_level2.gti")
+        os.system("xsmcomputeflux  data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.txt data/"+year+"/"+month+"/"+day+"/calibrated/fluxc.txt 1.5498 12.398")
+        os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.txt")
+        flag = os.system("rm -r data/"+year+"/"+month+"/"+day+"/calibrated/ch2_xsm_"+year+""+month+""+day+"_v1_flux.arf") 
+        if(flag!=0):
+            os.system("touch data/"+year+"/"+month+"/"+day+"/calibrated/fluxc.txt")
+            return 0
+        else:
+            return 1
 
 def choose1(x,y,maxsize):
     binsize = int(len(x)/maxsize)
@@ -382,10 +391,8 @@ def upload():
         file_path=f.filename
 
         year,month,day=store_data(file_path)
-        generate_flux(year,month,day)
+        is_flux = generate_flux(year,month,day)
         lcpath,flux_path=path(year,month,day)
-
-
         df = pd.DataFrame(columns = ['file_name','start coordinate (x)', 'start coordinate (y)', 'peak coordinate (x)', 'peak coordinate (y)', 'end coordinate (x)', 'end coordinate (y)', 'total burst time', 'rise time', 'decay time', 'area under curve','background count Rate vs Time', 'classfication by area', 'classification by duration'])
         flux_df = pd.DataFrame(columns = ['flux_file_name','Peak Flux (x)','Peak Flux (y)','background count Flux vs Time','Classification by Flux Peak','Classification by Flux Peak By Background Count'])
         df1 = pd.read_table(flux_path, delimiter=' ', header=None)
@@ -411,7 +418,8 @@ def upload():
         image_file = fits.open(lcpath)
         file_data = image_file[1].data
         rate,time = reduce_noise_by_stl_trend(file_data)
-        time,rate=choose1(time,rate,10000)
+        if(len(time)>=10000):
+            time,rate=choose1(time,rate,10000)
 #         rate_time_array = np.transpose(np.array([time,rate]))
         df_rate = pd.DataFrame({ 'time':time, 'rate':rate}, index=None)
 #         df_rate.to_csv(path+file_name+'.csv', index=None, header=False)
