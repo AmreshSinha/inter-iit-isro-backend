@@ -395,7 +395,7 @@ def upload():
         lcpath,flux_path=path(year,month,day)
         df = pd.DataFrame(columns = ['file_name','start coordinate (x)', 'start coordinate (y)', 'peak coordinate (x)', 'peak coordinate (y)', 'end coordinate (x)', 'end coordinate (y)', 'total burst time', 'rise time', 'decay time', 'area under curve','background count Rate vs Time', 'classfication by area', 'classification by duration'])
         flux_df = pd.DataFrame(columns = ['flux_file_name','Peak Flux (x)','Peak Flux (y)','background count Flux vs Time','Classification by Flux Peak','Classification by Flux Peak By Background Count'])
-        df1 = pd.read_table(flux_path, delimiter=' ', header=None)
+        #df1 = pd.read_table(flux_path, delimiter=' ', header=None)
         filetype = magic.from_file(lcpath)
         if 'ASCII' in filetype:
             table = Table.read(lcpath, format='ascii')
