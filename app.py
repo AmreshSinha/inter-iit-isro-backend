@@ -130,7 +130,7 @@ def flux_curve(df):
     x = flux
     peaks, _ = find_peaks(x)
     prominences, _, _ = peak_prominences(x, peaks)
-    selected = prominences > 0.5 * (np.min(prominences) + np.max(prominences))
+    selected = prominences > 0.3 * (np.min(prominences) + np.max(prominences))
     top = peaks[selected]
     print(x[top])
 
@@ -410,9 +410,10 @@ def upload():
         image_file = fits.open(lcpath)
         file_data = image_file[1].data
         rate,time = reduce_noise_by_stl_trend(file_data)
-        if(len(time)>=10000):
-            time,rate=choose1(time,rate,10000)
 #         rate_time_array = np.transpose(np.array([time,rate]))
+        #time2,rate2 = time,rate
+        if(len(time)>=1000):
+            time,rate=choose1(time,rate,1000)
         df_rate = pd.DataFrame({ 'time':time, 'rate':rate}, index=None)
 #         df_rate.to_csv(path+file_name+'.csv', index=None, header=False)
         top = find_peak(rate,time)
@@ -438,7 +439,7 @@ def upload():
             df_flux.columns = ['flux']
             df_flux['time'] = df_flux.index
             df_flux = df_flux[['time', 'flux']]
-            tm,rt = choose1(df_flux['time'],df_flux['flux'],10000)
+            tm,rt = choose1(df_flux['time'],df_flux['flux'],1000)
             df_temp=pd.DataFrame()
             df_temp['time']=tm
             df_temp['flux'] = rt
