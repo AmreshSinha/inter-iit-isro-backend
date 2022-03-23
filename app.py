@@ -461,9 +461,10 @@ def upload():
             # pd.concat([all_lc_orig_df, df_rate], ignore_index = True).to_csv("CSV/all_lc.csv", index=False)
             # pd.concat([all_flux_orig_df, df_flux], ignore_index = True).to_csv("CSV/all_flux.csv", index=False)
             df.to_csv(f'./CSV/lc.csv')
-            flux_df.to_csv(f'./CSV/flux.csv')
             df_rate.to_csv(f'./CSV/all_lc.csv')
-            df_flux.to_csv(f'./CSV/all_flux.csv')
+            if is_flux:
+                flux_df.to_csv(f'./CSV/flux.csv')
+                df_flux.to_csv(f'./CSV/all_flux.csv')
         except:
             df.to_csv(f'./CSV/lc.csv')
             flux_df.to_csv(f'./CSV/flux.csv')
