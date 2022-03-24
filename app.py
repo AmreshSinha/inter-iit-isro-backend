@@ -124,7 +124,7 @@ def area_under_curve(rate, start_index, end_index):
 
 def flux_curve(df):
     df.fillna(0, inplace=True)
-    window_width = 80
+    window_width = 1
     flux = (pd.Series(df['flux']).rolling(window=window_width).mean().iloc[window_width-1:].values)
     time = (pd.Series(df['time']).rolling(window=window_width).mean().iloc[window_width-1:].values)
     x = flux
@@ -442,7 +442,7 @@ def upload():
             tm,rt = choose1(df_flux['time'],df_flux['flux'],1000)
             df_temp=pd.DataFrame()
             df_temp['time']=tm
-            df_temp['flux'] = rt
+            df_temp['flux'] =rt
             df_flux=df_temp
             flux_peak_time, flux_peak, flux_bc = flux_curve(df_flux)
             flux_class = classification_by_flux_peak(flux_peak)
