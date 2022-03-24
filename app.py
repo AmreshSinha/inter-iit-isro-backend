@@ -185,7 +185,10 @@ def flux_curve(df):
     for s in range(len(start)):
         si = np.where(x == start[s])[0]
         ei = np.where(x == end[s])[0]
-        x_f = np.delete(x, slice(si[0], ei[0]), 0)
+        try:
+            x_f = np.delete(x, slice(si[0], ei[0]), 0)
+        except:
+            x_f=x
     flux_bc = np.mean(x_f, axis=0)
     
     return time[top],x[top], flux_bc
@@ -420,7 +423,9 @@ def upload():
         start, start_index, start_time,peak,peak_time = get_start_point(top,rate,time)
         end, end_index,end_time = get_end_time(top,start,rate,time)
         
-       
+        print(start)
+        print(end)
+        print(rate)
         area = area_under_curve(rate, start_index, end_index)
         bc = get_bc(start, end, rate)
         area_class = classification_by_area(area)
