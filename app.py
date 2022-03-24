@@ -38,7 +38,7 @@ def find_peak(rate,time):
     x = rate
     peaks, _ = find_peaks(x)
     prominences, _, _ = peak_prominences(x, peaks)
-    selected = prominences > 0.5 * (np.min(prominences) + np.max(prominences))
+    selected = prominences > 0.3 * (np.min(prominences) + np.max(prominences))
     top = peaks[selected]
     topp = []
     for i in range(0,len(top)):
