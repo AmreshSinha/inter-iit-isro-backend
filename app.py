@@ -416,28 +416,28 @@ def upload():
         # df1 = pd.read_table(flux_path, delimiter=' ', header=None)
         filetype = magic.from_file(lcpath)
         if 'ASCII' in filetype:
-            df_x = pd.read_csv(file_name, sep=" ", skipinitialspace=True)
+            df_x = pd.read_csv(lcpath, sep=" ", skipinitialspace=True)
             df_x.columns = ["time", "rate"]
             rate, time = reduce_noise_by_stl_trend(np.array(df_x["rate"], dtype=float), np.array(df_x["time"], dtype=float))
-            print(df_x)
+#             print(df_x)
             # df_x.to_excel("excel_try.xlsx",index=False)
         elif 'Excel' in filetype:
-            df_x = pd.read_excel(file_name)
+            df_x = pd.read_excel(lcpath)
             df_x.columns = ["time", "rate"]
             #         plt.plot(df_x['time'], df_x['rate'])
-            print(df_x)
+#             print(df_x)
             rate = np.array(df_x['rate'])
             time = np.array(df_x['time'])
             # plt.plot(time,rate)
             rate, time = reduce_noise_by_stl_trend(rate, time)
         elif 'FPT' in filetype:
-            cdf_file = cdflib.CDF(file_name)
+            cdf_file = cdflib.CDF(lcpath)
             arr = np.array((cdf_file.varget(variable='Sample Light Curve')[0]))
             rate = np.array([element[1] for element in arr])
             time = np.array([element[0] for element in arr])
             rate, time = reduce_noise_by_stl_trend(rate, time)
         elif 'FITS' in filetype:
-            image_file = fits.open(file_name)
+            image_file = fits.open(lcpath)
             file_data = image_file[1].data
             rate, time = reduce_noise_by_stl_trend(file_data["rate"], file_data["time"])
         #         df_flux.to_csv(flux_path+'.csv', index = None)
