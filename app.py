@@ -25,14 +25,22 @@ app=Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
-def reduce_noise_by_stl_trend(file_data):
+def reduce_noise_by_stl_trend(rate, time):
     window_width = 60
-    
-    rate = (pd.Series(file_data['Rate'].byteswap().newbyteorder()).rolling(window=window_width).mean().iloc[window_width-1:].values)
-    time = (pd.Series(file_data['Time'].byteswap().newbyteorder()).rolling(window=window_width).mean().iloc[window_width-1:].values)
-    
+    byteorder = rate.dtype.byteorder
+    if byteorder=='=':
+        byteorder=sys.byteorder
+    print(byteorder)
+    if byteorder == '<'or byteorder=='little':
+        rate = (pd.Series(rate).rolling(window=window_width).mean().iloc[window_width-1:].values)
+        time = (pd.Series(time).rolling(window=window_width).mean().iloc[window_width-1:].values)
+    else:
+        rate = (pd.Series(rate.byteswap().newbyteorder()).rolling(window=window_width).mean().iloc[window_width-1:].values)
+        time = (pd.Series(time.byteswap().newbyteorder()).rolling(window=window_width).mean().iloc[window_width-1:].values)
+#     fig = plt.figure(figsize=(18, 8))
     
     return rate,time
+  
 
 def find_peak(rate,time):
     x = rate
@@ -394,30 +402,50 @@ def upload():
         # Get the file from post request
         f = request.files['imgfile']
         f.save(secure_filename(f.filename))
-        file_path=f.filename
+        file_path = f.filename
 
-        year,month,day=store_data(file_path)
-        is_flux = generate_flux(year,month,day)
-        lcpath,flux_path=path(year,month,day)
-        df = pd.DataFrame(columns = ['file_name','start coordinate (x)', 'start coordinate (y)', 'peak coordinate (x)', 'peak coordinate (y)', 'end coordinate (x)', 'end coordinate (y)', 'total burst time', 'rise time', 'decay time', 'area under curve','background count Rate vs Time', 'classfication by area', 'classification by duration'])
-        flux_df = pd.DataFrame(columns = ['flux_file_name','Peak Flux (x)','Peak Flux (y)','background count Flux vs Time','Classification by Flux Peak','Classification by Flux Peak By Background Count'])
-        #df1 = pd.read_table(flux_path, delimiter=' ', header=None)
+        year, month, day = store_data(file_path)
+        is_flux = generate_flux(year, month, day)
+        lcpath, flux_path = path(year, month, day)
+        df = pd.DataFrame(columns=['file_name', 'start coordinate (x)', 'start coordinate (y)', 'peak coordinate (x)',
+                                   'peak coordinate (y)', 'end coordinate (x)', 'end coordinate (y)', 'total burst time',
+                                   'rise time', 'decay time', 'area under curve', 'background count Rate vs Time',
+                                   'classfication by area', 'classification by duration'])
+        flux_df = pd.DataFrame(columns=['flux_file_name', 'Peak Flux (x)', 'Peak Flux (y)', 'background count Flux vs Time',
+                                        'Classification by Flux Peak', 'Classification by Flux Peak By Background Count'])
+        # df1 = pd.read_table(flux_path, delimiter=' ', header=None)
         filetype = magic.from_file(lcpath)
         if 'ASCII' in filetype:
-            table = Table.read(lcpath, format='ascii')
-            table.write(lcpath, format='fits')
-        elif 'XLS' in filetype:
-            file_xls = pd.read_excel(lcpath)
-            file_xls.to_csv(lcpath)
-            table2 = Table.read(lcpath+".csv", format='pandas.csv')
-            table2.write(lcpath, format='fits')
-        
-#         df_flux.to_csv(flux_path+'.csv', index = None)
-        image_file = fits.open(lcpath)
-        file_data = image_file[1].data
-        rate,time = reduce_noise_by_stl_trend(file_data)
-#         rate_time_array = np.transpose(np.array([time,rate]))
-        #time2,rate2 = time,rate
+            df_x = pd.read_csv(file_name, sep=" ", skipinitialspace=True)
+            df_x.columns = ["time", "rate"]
+            rate, time = reduce_noise_by_stl_trend(np.array(df_x["rate"], dtype=float), np.array(df_x["time"], dtype=float))
+            print(df_x)
+            # df_x.to_excel("excel_try.xlsx",index=False)
+        elif 'Excel' in filetype:
+            df_x = pd.read_excel(file_name)
+            df_x.columns = ["time", "rate"]
+            #         plt.plot(df_x['time'], df_x['rate'])
+            print(df_x)
+            rate = np.array(df_x['rate'])
+            time = np.array(df_x['time'])
+            # plt.plot(time,rate)
+            rate, time = reduce_noise_by_stl_trend(rate, time)
+        elif 'FPT' in filetype:
+            cdf_file = cdflib.CDF(file_name)
+            arr = np.array((cdf_file.varget(variable='Sample Light Curve')[0]))
+            rate = np.array([element[1] for element in arr])
+            time = np.array([element[0] for element in arr])
+            rate, time = reduce_noise_by_stl_trend(rate, time)
+        elif 'FITS' in filetype:
+            image_file = fits.open(file_name)
+            file_data = image_file[1].data
+            rate, time = reduce_noise_by_stl_trend(file_data["rate"], file_data["time"])
+        #         df_flux.to_csv(flux_path+'.csv', index = None)
+        # image_file = fits.open(lcpath)
+        # file_data = image_file[1].data
+        #rate, time = reduce_noise_by_stl_trend(file_data)
+        #         rate_time_array = np.transpose(np.array([time,rate]))
+        # time2,rate2 = time,rate
         if(len(time)>=1000):
             time,rate=choose1(time,rate,1000)
         df_rate = pd.DataFrame({ 'time':time, 'rate':rate}, index=None)
