@@ -8,7 +8,7 @@ import glob
 import re
 import csv
 import json
-
+import cdflib
 from astropy.utils.data import get_pkg_data_filename
 import magic
 from astropy.table import Table
