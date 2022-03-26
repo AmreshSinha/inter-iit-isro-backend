@@ -403,10 +403,15 @@ def upload():
         f = request.files['imgfile']
         f.save(secure_filename(f.filename))
         file_path = f.filename
-
-        year, month, day = store_data(file_path)
-        is_flux = generate_flux(year, month, day)
-        lcpath, flux_path = path(year, month, day)
+        if(file_path[-4:]!=".zip"):
+            lcpath = f.filename
+            is_flux=0
+            os.system("touch tempflux.csv")
+            flux_path = "tempflux.csv"
+        else:
+            year, month, day = store_data(file_path)
+            is_flux = generate_flux(year, month, day)
+            lcpath, flux_path = path(year, month, day)
         df = pd.DataFrame(columns=['file_name', 'start coordinate (x)', 'start coordinate (y)', 'peak coordinate (x)',
                                    'peak coordinate (y)', 'end coordinate (x)', 'end coordinate (y)', 'total burst time',
                                    'rise time', 'decay time', 'area under curve', 'background count Rate vs Time',
@@ -415,12 +420,17 @@ def upload():
                                         'Classification by Flux Peak', 'Classification by Flux Peak By Background Count'])
         # df1 = pd.read_table(flux_path, delimiter=' ', header=None)
         filetype = magic.from_file(lcpath)
+        print(filetype)
         if 'ASCII' in filetype:
             df_x = pd.read_csv(lcpath, sep=" ", skipinitialspace=True)
             df_x.columns = ["time", "rate"]
             rate, time = reduce_noise_by_stl_trend(np.array(df_x["rate"], dtype=float), np.array(df_x["time"], dtype=float))
 #             print(df_x)
             # df_x.to_excel("excel_try.xlsx",index=False)
+        elif 'CSV' in filetype:
+            df_x = pd.read_csv(lcpath)
+            df_x.columns = ["time", "rate"]
+            rate, time = reduce_noise_by_stl_trend(np.array(df_x["rate"], dtype=float), np.array(df_x["time"], dtype=float))
         elif 'Excel' in filetype:
             df_x = pd.read_excel(lcpath)
             df_x.columns = ["time", "rate"]
@@ -440,6 +450,7 @@ def upload():
             image_file = fits.open(lcpath)
             file_data = image_file[1].data
             rate, time = reduce_noise_by_stl_trend(file_data["rate"], file_data["time"])
+
         #         df_flux.to_csv(flux_path+'.csv', index = None)
         # image_file = fits.open(lcpath)
         # file_data = image_file[1].data
