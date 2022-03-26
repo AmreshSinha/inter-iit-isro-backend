@@ -440,17 +440,16 @@ def upload():
             time = np.array(df_x['time'])
             # plt.plot(time,rate)
             rate, time = reduce_noise_by_stl_trend(rate, time)
+        elif 'FITS' in filetype:
+            image_file = fits.open(lcpath)
+            file_data = image_file[1].data
+            rate, time = reduce_noise_by_stl_trend(file_data["rate"], file_data["time"])
         elif 'FPT' in filetype or 'data' in filetype:
             cdf_file = cdflib.CDF(lcpath)
             arr = np.array((cdf_file.varget(variable='Sample Light Curve')[0]))
             rate = np.array([element[1] for element in arr])
             time = np.array([element[0] for element in arr])
             rate, time = reduce_noise_by_stl_trend(rate, time)
-        elif 'FITS' in filetype:
-            image_file = fits.open(lcpath)
-            file_data = image_file[1].data
-            rate, time = reduce_noise_by_stl_trend(file_data["rate"], file_data["time"])
-
         #         df_flux.to_csv(flux_path+'.csv', index = None)
         # image_file = fits.open(lcpath)
         # file_data = image_file[1].data
