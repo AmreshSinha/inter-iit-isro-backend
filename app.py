@@ -420,7 +420,7 @@ def upload():
                                         'Classification by Flux Peak', 'Classification by Flux Peak By Background Count'])
         # df1 = pd.read_table(flux_path, delimiter=' ', header=None)
         filetype = magic.from_file(lcpath)
-        print(filetype)
+        print("\n\n\n"+filetype+"\n\n\n")
         if 'ASCII' in filetype:
             df_x = pd.read_csv(lcpath, sep=" ", skipinitialspace=True)
             df_x.columns = ["time", "rate"]
@@ -440,7 +440,7 @@ def upload():
             time = np.array(df_x['time'])
             # plt.plot(time,rate)
             rate, time = reduce_noise_by_stl_trend(rate, time)
-        elif 'FPT' in filetype:
+        elif 'FPT' in filetype or 'data' in filetype:
             cdf_file = cdflib.CDF(lcpath)
             arr = np.array((cdf_file.varget(variable='Sample Light Curve')[0]))
             rate = np.array([element[1] for element in arr])
